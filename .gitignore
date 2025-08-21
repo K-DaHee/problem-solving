@@ -1,0 +1,6 @@
+# Eclipse IDE files
+.metadata/
+
+# Compiled class files
+bin/
+build/
