@@ -1,6 +1,6 @@
 # Problem Solving
 
-백준(BOJ), 프로그래머스(Programmers) 문제 풀이 아카이브입니다.  
+백준(BOJ), 프로그래머스(Programmers), 삼성 SW Expert Academy(SWEA) 문제 풀이 아카이브입니다.  
 **Java**를 사용하였으며, 난이도와 레벨별로 정리했습니다.  
 
 ## 📂 Repository Structure
@@ -13,6 +13,12 @@
 ### Programmers
 - `PRO.Lv1` : 프로그래머스 Level 1 문제
 - `PRO.Lv2` : 프로그래머스 Level 2 문제
+- `PRO.Lv3` : 프로그래머스 Level 3 문제
+
+### SWEA
+- `SWEA.D1` : 삼성 SW Expert Academy D1 문제
+- `SWEA.D2` : 삼성 SW Expert Academy D2 문제
+- `SWEA.D3` : 삼성 SW Expert Academy D3 문제
 
 ## ✅ 풀이 언어
 - Java
