@@ -3,12 +3,15 @@
 .settings/
 .project
 .classpath
-bin/
 
 # IntelliJ
 .idea/
 *.iml
+
+# Compiled output
+bin/
 out/
+*.class
 
 # macOS
 .DS_Store
