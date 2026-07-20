@@ -1,0 +1,59 @@
+name: Merge PRs 3 days after last commit
+
+on:
+  schedule:
+    # 30분마다 확인
+    - cron: "*/30 * * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge-inactive-prs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Squash merge PRs inactive for 3 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          cutoff=$(date -u -d "3 days ago" +%s)
+
+          gh pr list \
+            --repo "$GH_REPO" \
+            --state open \
+            --limit 100 \
+            --json number,isDraft \
+            --jq '.[] | select(.isDraft == false) | .number' |
+          while read -r number; do
+            last_commit_date=$(
+              gh pr view "$number" \
+                --repo "$GH_REPO" \
+                --json commits \
+                --jq '.commits[-1].committedDate'
+            )
+
+            if [ -z "$last_commit_date" ] || [ "$last_commit_date" = "null" ]; then
+              echo "PR #$number: 마지막 커밋 시간을 찾지 못해 건너뜀"
+              continue
+            fi
+
+            last_commit_timestamp=$(date -u -d "$last_commit_date" +%s)
+
+            echo "PR #$number 마지막 커밋: $last_commit_date"
+
+            if [ "$last_commit_timestamp" -le "$cutoff" ]; then
+              echo "PR #$number: 마지막 커밋 후 3일 경과, 머지 시도"
+
+              gh pr merge "$number" \
+                --repo "$GH_REPO" \
+                --squash \
+                --delete-branch ||
+              echo "PR #$number: 충돌 또는 머지 조건 미충족으로 건너뜀"
+            fi
+          done
