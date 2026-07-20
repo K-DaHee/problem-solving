@@ -5,6 +5,7 @@ on:
     # 30분마다 확인
     - cron: "*/30 * * * *"
 
+  # Actions 탭에서 수동 실행 가능
   workflow_dispatch:
 
 permissions:
@@ -16,14 +17,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Squash merge PRs inactive for 3 days
+      - name: Squash merge inactive PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           cutoff=$(date -u -d "3 days ago" +%s)
+          temp_file=$(mktemp)
 
+          # 열린 PR의 마지막 커밋 시간을 수집
           gh pr list \
             --repo "$GH_REPO" \
             --state open \
@@ -45,15 +48,32 @@ jobs:
 
             last_commit_timestamp=$(date -u -d "$last_commit_date" +%s)
 
+            echo "$last_commit_timestamp $number $last_commit_date" >> "$temp_file"
+          done
+
+          # 마지막 커밋 시간이 오래된 PR부터 처리
+          sort -n "$temp_file" |
+          while read -r last_commit_timestamp number last_commit_date; do
             echo "PR #$number 마지막 커밋: $last_commit_date"
 
-            if [ "$last_commit_timestamp" -le "$cutoff" ]; then
-              echo "PR #$number: 마지막 커밋 후 3일 경과, 머지 시도"
+            # 가장 오래된 대상도 3일이 지나지 않았다면
+            # 뒤의 PR은 모두 더 최신이므로 확인 종료
+            if [ "$last_commit_timestamp" -gt "$cutoff" ]; then
+              echo "PR #$number: 마지막 커밋 후 3일이 지나지 않음"
+              echo "이후 PR은 모두 더 최신이므로 확인 종료"
+              break
+            fi
 
-              gh pr merge "$number" \
-                --repo "$GH_REPO" \
-                --squash \
-                --delete-branch ||
+            echo "PR #$number: 마지막 커밋 후 3일 경과, 머지 시도"
+
+            if gh pr merge "$number" \
+              --repo "$GH_REPO" \
+              --squash \
+              --delete-branch; then
+              echo "PR #$number: 머지 완료"
+            else
               echo "PR #$number: 충돌 또는 머지 조건 미충족으로 건너뜀"
             fi
           done
+
+          rm -f "$temp_file"
